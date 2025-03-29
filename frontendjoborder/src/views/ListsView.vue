@@ -1,122 +1,112 @@
 <template>
-  <v-container class="main-container" style="max-width: 100%">
-    <v-data-table-virtual
-      :headers="headers"
-      :items="virtualJobOrders"
-      height="800"
-      width="100%"
-      item-value="jobOrderNumber"
-      fixed-header
-      @click:row="onRowClick"
-    >
-    </v-data-table-virtual>
+  <div>
+    <v-card>
+      <v-card-title>Job Orders</v-card-title>
 
-    <!-- Dialog to show full information -->
-    <v-dialog v-model="dialogVisible" max-width="1000px">
+      <v-card-text>
+        <v-data-table :headers="headers" :items="jobOrders" item-value="id" :loading="isLoading">
+          <template v-slot:item="{ item }">
+            <tr>
+              <td>{{ item.job_order_number }}</td>
+              <td>{{ item.customer_name }}</td>
+              <td>{{ item.contact_number }}</td>
+              <td>{{ item.laptop_model }}</td>
+              <td>{{ item.status }}</td>
+              <td>{{ formatDate(item.created_at) }}</td>
+              <td>
+                <v-btn icon="mdi-eye" @click="viewJobOrder(item)"></v-btn>
+              </td>
+            </tr>
+          </template>
+        </v-data-table>
+      </v-card-text>
+    </v-card>
+
+    <!-- Job Order Details Dialog -->
+    <v-dialog v-model="showDialog" max-width="600px">
       <v-card>
-        <v-card-title>
-          <span class="headline">Job Order Details</span>
-        </v-card-title>
-        <v-card-subtitle>{{ selectedJobOrder.jobOrderNumber }}</v-card-subtitle>
+        <v-card-title>Job Order Details</v-card-title>
         <v-card-text>
-          <v-row>
-            <v-col cols="12" md="6">
-              <strong>Name:</strong> {{ selectedJobOrder.name }}
-            </v-col>
-            <v-col cols="12" md="6">
-              <strong>Laptop Model:</strong> {{ selectedJobOrder.laptopModel }}
-            </v-col>
-            <v-col cols="12">
-              <strong>Date Created:</strong> {{ selectedJobOrder.dateCreated }}
-            </v-col>
-            <v-col cols="12">
-              <strong>Status:</strong> {{ selectedJobOrder.status }}
-            </v-col>
-            <v-col cols="12">
-              <strong>Parts:</strong>
-              <ul>
-                <li v-for="(part, index) in selectedJobOrder.parts" :key="index">{{ part }}</li>
-              </ul>
-            </v-col>
-            <v-col cols="12">
-              <strong>Without:</strong>
-              <ul>
-                <li v-for="(item, index) in selectedJobOrder.without" :key="index">{{ item }}</li>
-              </ul>
-            </v-col>
-          </v-row>
+          <p><strong>Job Order #:</strong> {{ selectedJobOrder?.job_order_number }}</p>
+          <p><strong>Customer Name:</strong> {{ selectedJobOrder?.customer_name }}</p>
+          <p><strong>Contact:</strong> {{ selectedJobOrder?.contact_number }}</p>
+          <p><strong>Address:</strong> {{ selectedJobOrder?.customer_address }}</p>
+          <p><strong>Laptop Model:</strong> {{ selectedJobOrder?.laptop_model }}</p>
+          <p><strong>Status:</strong> {{ selectedJobOrder?.status }}</p>
+          <p><strong>Created At:</strong> {{ formatDate(selectedJobOrder?.created_at) }}</p>
+
+          <!-- RAM Details -->
+          <div v-if="selectedJobOrder?.ram">
+  <strong>RAM:</strong>
+  <ul>
+    <li v-for="(ram, index) in JSON.parse(selectedJobOrder.ram)" :key="index">
+      {{ ram.capacity ? `${ram.capacity}GB - ${ram.type}` : "Unknown RAM" }}
+    </li>
+  </ul>
+</div>
+
+          <!-- SSD Details -->
+          <div v-if="selectedJobOrder?.ram">
+  <strong>SSD:</strong>
+  <ul>
+    <li v-for="(ssd, index) in JSON.parse(selectedJobOrder.ssd)" :key="index">
+      {{ ssd.capacity ? `${ssd.capacity}GB - ${ssd.type}` : "Unknown RAM" }}
+    </li>
+  </ul>
+</div>
+
+          <p><strong>HDD:</strong> {{ selectedJobOrder?.hdd || "None" }}</p>
+          <p><strong>Battery:</strong> {{ selectedJobOrder?.has_battery ? "Yes" : "No" }}</p>
+          <p><strong>WiFi Card:</strong> {{ selectedJobOrder?.has_wifi_card ? "Yes" : "No" }}</p>
+          <p><strong>Others:</strong> {{ selectedJobOrder?.others || "None" }}</p>
+          <p><strong>Without:</strong> {{ selectedJobOrder?.without || "None" }}</p>
         </v-card-text>
         <v-card-actions>
-          <v-btn text @click="dialogVisible = false">Close</v-btn>
+          <v-btn color="primary" @click="showDialog = false">Close</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
-  </v-container>
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted } from "vue";
+import axios from "axios";
+
+const jobOrders = ref([]);
+const isLoading = ref(false);
+const showDialog = ref(false);
+const selectedJobOrder = ref(null);
 
 const headers = [
-  { title: 'Job Order Number', align: 'start', key: 'jobOrderNumber' },
-  { title: 'Name', align: 'start', key: 'name' },
-  { title: 'Laptop Model', align: 'start', key: 'laptopModel' },
-  { title: 'Date Created', align: 'start', key: 'dateCreated' },
-  { title: 'Current Status', align: 'start', key: 'status' },
-  { title: 'Parts', align: 'start', key: 'parts' },
-  { title: 'Without', align: 'start', key: 'without' }
-]
+  { title: "Job Order", key: "job_order_number" },
+  { title: "Customer Name", key: "customer_name" },
+  { title: "Contact", key: "contact_number" },
+  { title: "Laptop Model", key: "laptop_model" },
+  { title: "Status", key: "status" },
+  { title: "Created At", key: "created_at" },
+  { title: "Actions", key: "actions", sortable: false },
+];
 
-const jobOrders = [
-  { jobOrderNumber: 'JO12345', name: 'John Doe', laptopModel: 'Dell XPS 13', dateCreated: '2023-03-01', status: 'Under Repair',
-    parts: ['2x16GB RAM', '256GB SSD', '500GB HDD', 'Battery', 'Charger', 'Bag'],
-    without: ['Screws'] },
+const fetchJobOrders = async () => {
+  isLoading.value = true;
+  try {
+    const response = await axios.get("http://localhost:8000/api/job-orders");
+    jobOrders.value = response.data;
+  } catch (error) {
+    console.error("Error fetching job orders:", error);
+  }
+  isLoading.value = false;
+};
 
-  { jobOrderNumber: 'JO12346', name: 'Jane Smith', laptopModel: 'MacBook Pro 16', dateCreated: '2023-03-05', status: 'Completed',
-    parts: ['16GB RAM', '512GB SSD', '250GB HDD', 'Battery', 'Charger'],
-    without: ['Screws', 'Power Cable'] },
+const viewJobOrder = (jobOrder) => {
+  selectedJobOrder.value = jobOrder;
+  showDialog.value = true;
+};
 
-  { jobOrderNumber: 'JO12347', name: 'Alice Johnson', laptopModel: 'HP Spectre x360', dateCreated: '2023-03-10', status: 'In Progress',
-    parts: ['8GB RAM', '1TB SSD', '1TB HDD', 'Battery', 'Charger'],
-    without: ['Screws'] },
+const formatDate = (date) => {
+  return new Date(date).toLocaleString();
+};
 
-  { jobOrderNumber: 'JO12348', name: 'Bob Lee', laptopModel: 'Lenovo ThinkPad X1', dateCreated: '2023-03-12', status: 'Under Repair',
-    parts: ['16GB RAM', '256GB SSD', '500GB HDD', 'Battery', 'Charger', 'Bag'],
-    without: ['Screws'] }
-]
-
-const virtualJobOrders = ref([])
-
-const dialogVisible = ref(false) // Controls dialog visibility
-const selectedJobOrder = ref({}) // Stores the selected job order for the dialog
-
-onMounted(() => {
-  fetchData()
-})
-
-function fetchData() {
-  setTimeout(() => {
-    virtualJobOrders.value = [...Array(500).keys()].map(i => {
-      const jobOrder = { ...jobOrders[i % jobOrders.length] }
-      jobOrder.jobOrderNumber = `${jobOrder.jobOrderNumber} #${i}`
-      return jobOrder
-    })
-  }, 1000)
-}
-
-function onRowClick(item) {
-  // Set the selected job order and open the dialog
-  selectedJobOrder.value = item
-  dialogVisible.value = true
-}
-
+onMounted(fetchJobOrders);
 </script>
-
-<style scoped>
-form {
-  background-color: #f9f9f9;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-</style>
