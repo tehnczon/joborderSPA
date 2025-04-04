@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('contact_number'); // 👈 Added here after customer_name
             $table->string('laptop_model');
             $table->timestamp('date_created')->useCurrent();
-            $table->enum('status', ['Pending', 'In Progress', 'Completed'])->default('Pending');
+            $table->enum('status', ['Pending', 'In Progress', 'Completed', 'Unrepairable/pullout', 'Completed/claimed'])->default('Pending');
             $table->date('pullout_date')->nullable();
 
             // Parts

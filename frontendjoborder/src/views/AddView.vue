@@ -79,104 +79,94 @@
     </v-container>
   </template>
 
-  <script setup>
-  import { reactive } from "vue";
-  import { useVuelidate } from "@vuelidate/core";
-  import { required, numeric, helpers } from "@vuelidate/validators";
-  import axios from "axios";
+<script setup>
+import { reactive } from "vue";
+import { useVuelidate } from "@vuelidate/core";
+import { required, numeric, helpers } from "@vuelidate/validators";
+import axios from "axios";
+import { useRouter } from "vue-router"; // Import Vue Router
 
-  const state = reactive({
-    customer_type: "customer", // FIXED field name
+const router = useRouter(); // Initialize Vue Router
+
+const state = reactive({
+  customer_type: "customer",
+  customer_name: "",
+  contact_number: "",
+  customer_address: "",
+  laptop_model: "",
+  ram: [],
+  ssd: [],
+  hdd: "",
+  has_battery: false,
+  has_wifi_card: false,
+  others: "",
+  without: "",
+  problem: "",
+  agree: false,
+});
+
+// Validation rules
+const rules = {
+  customer_name: { required: helpers.withMessage("Customer Name is required", required) },
+  contact_number: { required: helpers.withMessage("Contact Number is required", required), numeric },
+  customer_address: { required: helpers.withMessage("Address is required", required) },
+  laptop_model: { required: helpers.withMessage("Laptop Model is required", required) },
+  agree: { required: helpers.withMessage("You must agree to continue", required) },
+};
+
+const v$ = useVuelidate(rules, state);
+
+// RAM Functions
+const addRam = () => state.ram.push({ capacity: "", type: "DDR4" });
+const removeRam = (index) => state.ram.splice(index, 1);
+
+// SSD Functions
+const addSsd = () => state.ssd.push({ capacity: "", type: "SATA" });
+const removeSsd = (index) => state.ssd.splice(index, 1);
+
+const submitForm = async () => {
+  const isValid = await v$.value.$validate();
+  if (!isValid) return;
+
+  const requestData = { ...state };
+
+  try {
+    const response = await axios.post("http://localhost:8000/api/job-orders", requestData, {
+      headers: { "Content-Type": "application/json" },
+    });
+
+    alert(response.data.message || "Job Order Created!");
+
+    // Redirect to Print.vue with job order data
+    router.push({ path: "/print", query: response.data.jobOrder });
+
+    clearForm();
+  } catch (error) {
+    console.error("Error submitting job order:", error);
+    if (error.response) {
+      alert(JSON.stringify(error.response.data.errors, null, 2));
+    }
+  }
+};
+
+const clearForm = () => {
+  v$.value.$reset();
+  Object.assign(state, {
+    customer_type: "customer",
     customer_name: "",
     contact_number: "",
     customer_address: "",
     laptop_model: "",
-    ram: [], // Will be converted to JSON
-    ssd: [], // Will be converted to JSON
+    ram: [],
+    ssd: [],
     hdd: "",
     has_battery: false,
-    has_wifi_card: false, // FIXED field name
+    has_wifi_card: false,
     others: "",
     without: "",
     problem: "",
     agree: false,
   });
+};
+</script>
 
-  // Validation rules
-  const rules = {
-    customer_name: { required: helpers.withMessage("Customer Name is required", required) },
-    contact_number: { required: helpers.withMessage("Contact Number is required", required), numeric },
-    customer_address: { required: helpers.withMessage("Address is required", required) },
-    laptop_model: { required: helpers.withMessage("Laptop Model is required", required) },
-    ram: {
-      $each: {
-        capacity: { required, numeric },
-        type: { required },
-      },
-    },
-    ssd: {
-      $each: {
-        capacity: { required, numeric },
-        type: { required },
-      },
-    },
-    hdd: { numeric },
-    agree: { required: helpers.withMessage("You must agree to continue", required) },
-  };
-
-  const v$ = useVuelidate(rules, state);
-
-  // RAM Functions
-  const addRam = () => state.ram.push({ capacity: "", type: "DDR4" });
-  const removeRam = (index) => state.ram.splice(index, 1);
-
-  // SSD Functions
-  const addSsd = () => state.ssd.push({ capacity: "", type: "SATA" });
-  const removeSsd = (index) => state.ssd.splice(index, 1);
-
-  const submitForm = async () => {
-    const isValid = await v$.value.$validate();
-    if (!isValid) return;
-
-    // Prepare request data (no JSON.stringify)
-    const requestData = { ...state };
-
-    // Debug: Log data before sending
-    console.log("Submitting Job Order:", requestData);
-
-
-    try {
-      const response = await axios.post("http://localhost:8000/api/job-orders", requestData, {
-        headers: { "Content-Type": "application/json" },
-      });
-      alert(response.data.message || "Job Order Created!");
-      clearForm();
-    } catch (error) {
-      console.error("Error submitting job order:", error);
-      if (error.response) {
-        console.error("Validation Errors:", error.response.data.errors);
-        alert(JSON.stringify(error.response.data.errors, null, 2));
-      }
-    }
-  };
-
-  const clearForm = () => {
-    v$.value.$reset();
-    Object.assign(state, {
-      customer_type: "customer",
-      customer_name: "",
-      contact_number: "",
-      customer_address: "",
-      laptop_model: "",
-      ram: [],
-      ssd: [],
-      hdd: "",
-      has_battery: false,
-      has_wifi_card: false,
-      others: "",
-      without: "",
-      problem: "",
-      agree: false,
-    });
-  };
-  </script>

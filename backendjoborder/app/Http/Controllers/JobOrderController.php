@@ -131,7 +131,7 @@ class JobOrderController extends Controller
             'customer_type' => ['sometimes', Rule::in(['customer', 'technician-customer'])],
             'customer_name' => 'sometimes|string|max:255',
             'laptop_model' => 'sometimes|string|max:255',
-            'status' => ['sometimes', Rule::in(['Pending', 'In Progress', 'Completed'])],
+            'status' => ['sometimes', Rule::in(['Pending', 'In Progress', 'Completed', 'Unrepairable/pullout', 'Completed/claimed'])],
             'pullout_date' => 'sometimes|date',
             'ram' => 'sometimes|string|max:255',
             'ssd' => 'sometimes|string|max:255',
