@@ -23,6 +23,7 @@ class JobOrder extends Model
         'laptop_model',
         'status',
         'pullout_date',
+        'pulled_out_by',
         'ram',
         'ssd',
         'hdd',
@@ -52,7 +53,7 @@ class JobOrder extends Model
                 ->first();
 
             $nextNumber = $latestJobOrder ? (intval(substr($latestJobOrder->job_order_number, 2)) + 1) : 1;
-            $jobOrder->job_order_number = $prefix . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+            $jobOrder->job_order_number = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
         });
     }
 
@@ -61,6 +62,7 @@ class JobOrder extends Model
     return array_merge(parent::toArray(), [
         'created_at' => Carbon::parse($this->created_at)->format('Y-m-d H:i:s'),
         'updated_at' => Carbon::parse($this->updated_at)->format('Y-m-d H:i:s'),
+        'pullout_date' => $this->pullout_date ? Carbon::parse($this->pullout_date)->format('Y-m-d') : null,
     ]);
 }
 }

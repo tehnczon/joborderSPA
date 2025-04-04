@@ -15,6 +15,16 @@
           color="red darken-2"
         ></v-select>
 
+        <v-text-field
+  v-if="['Unrepairable/pullout', 'Completed/claimed'].includes(jobOrder.status)"
+  v-model="jobOrder.pulled_out_by"
+  label="Pulled out by"
+  outlined
+  color="red darken-2"
+  :rules="[v => !!v || 'Please enter the name of person who pulled out.']"
+/>
+
+
         <v-btn block color="red darken-2" class="save-btn" @click="updateJobOrder">
           Save Changes
         </v-btn>
@@ -52,9 +62,22 @@ const fetchJobOrder = async () => {
 const updateJobOrder = async () => {
   if (!jobOrder.value) return;
 
+  const pulloutStatuses = ["Unrepairable/pullout", "Completed/claimed"];
+  const isPullout = pulloutStatuses.includes(jobOrder.value.status);
+
+  // Enforce pulled_out_by name
+  if (isPullout && !jobOrder.value.pulled_out_by) {
+    alert("Please enter the name of the person who pulled out.");
+    return;
+  }
+
+  const pulloutDate = isPullout ? new Date().toISOString().split("T")[0] : null;
+
   try {
     await axios.put(`http://localhost:8000/api/job-orders/${route.query.id}`, {
       status: jobOrder.value.status,
+      pullout_date: pulloutDate,
+      pulled_out_by: jobOrder.value.pulled_out_by ?? null,
     });
     alert("Job Order updated successfully!");
     router.push("/");

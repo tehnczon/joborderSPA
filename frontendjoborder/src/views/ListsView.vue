@@ -31,6 +31,8 @@
                 <v-btn icon="mdi-eye" @click="viewJobOrder(item)"></v-btn>
                 <v-btn icon="mdi-printer" :to="{ path: '/print', query: item }"></v-btn>
                 <v-btn icon="mdi-pencil" :to="{ path: '/update', query: { id: item.id } }"></v-btn>
+                <v-btn icon="mdi-image" :to="{ path: '/image', query: { id: item.id } }"></v-btn>
+
               </td>
             </tr>
           </template>
@@ -77,6 +79,7 @@
           <p><strong>Others:</strong> {{ selectedJobOrder?.others || "None" }}</p>
           <p><strong>Without:</strong> {{ selectedJobOrder?.without || "None" }}</p>
           <p><strong>Problem:</strong> {{ selectedJobOrder?.problem || "None" }}</p>
+          <p><strong>Pullout Date:</strong> {{ selectedJobOrder?.pullout_date || "None" }} - {{ selectedJobOrder?.pulled_out_by || "None" }}</p>
         </v-card-text>
         <v-card-actions>
           <v-btn color="primary" @click="showDialog = false">Close</v-btn>

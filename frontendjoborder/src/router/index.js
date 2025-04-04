@@ -4,6 +4,7 @@ import AddView from "@/views/AddView.vue";
 import UpdateView from "@/views/update-component.vue";
 import LoginView from "@/components/my-login.vue";
 import Print from "@/views/PrintView.vue";
+import ImageView from "@/components/img-upload.vue";
 import axios from "@/api/axios"; // Import global axios instance
 import { ref } from "vue";
 
@@ -36,6 +37,7 @@ const routes = [
   { path: "/update", component: UpdateView, meta: { requiresAuth: true } },
   { path: "/login", component: LoginView },
   { path: "/print", component: Print },
+  { path: "/image", component: ImageView, meta: { requiresAuth: true } },
 ];
 
 const router = createRouter({
