@@ -17,6 +17,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/job-orders/{id}', [JobOrderController::class, 'show']); // Read single
     Route::put('/job-orders/{id}', [JobOrderController::class, 'update']); // Update
     Route::delete('/job-orders/{id}', [JobOrderController::class, 'destroy']); // Delete
+    Route::post('job-orders/{id}/upload-images', [JobOrderController::class, 'uploadImages']); // Upload images
+    Route::get('job-orders/{id}/images', [JobOrderController::class, 'getImages']); // Fetch images for a job order
 });
 
 

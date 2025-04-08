@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\JobOrder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage;
 
 class JobOrderController extends Controller
 {
@@ -158,5 +159,45 @@ class JobOrderController extends Controller
 
         $jobOrder->delete();
         return response()->json(['message' => 'Job Order deleted successfully'], 200);
+    }
+
+    public function uploadImages(Request $request, $id)
+    {
+        $request->validate([
+            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $uploadedImages = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $image) {
+                $path = $image->store('job-order-images', 'public');
+                $uploadedImages[] = Storage::url($path); // Return full URL for each image
+            }
+        }
+
+        return response()->json(['message' => 'Images uploaded successfully', 'images' => $uploadedImages]);
+    }
+
+    public function getImages($id)
+    {
+        $jobOrder = JobOrder::find($id);
+
+        if (!$jobOrder) {
+            return response()->json(['message' => 'Job order not found'], 404);
+        }
+
+        // Assuming images are stored in a related table or as a JSON column
+        $images = $jobOrder->images; // Adjust this based on your database structure
+
+        if (!$images || count($images) === 0) {
+            return response()->json([], 200); // Return an empty array if no images are found
+        }
+
+        // Format the image URLs (assuming they are stored as paths)
+        $imageUrls = array_map(function ($imagePath) {
+            return Storage::url($imagePath); // Return full URL for each image
+        }, $images);
+
+        return response()->json($imageUrls, 200);
     }
 }
