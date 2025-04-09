@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Carbon\Carbon;
+use App\Models\JobOrderImage;
 
 class JobOrder extends Model
 {
@@ -65,4 +66,10 @@ class JobOrder extends Model
         'pullout_date' => $this->pullout_date ? Carbon::parse($this->pullout_date)->format('Y-m-d') : null,
     ]);
 }
+
+public function images()
+{
+    return $this->hasMany(JobOrderImage::class);
+}
+
 }

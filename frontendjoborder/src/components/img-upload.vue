@@ -1,40 +1,57 @@
-<template>
-  <v-container>
-    <v-card class="pa-4">
-      <v-card-title>Upload Images for Job Order</v-card-title>
-      <!-- Image upload section -->
-      <v-file-input
-        v-model="files"
-        label="Upload Images"
-        accept="image/*"
-        multiple
-        outlined
-        required
-        @change="uploadImages"
-      ></v-file-input>
+  <template>
+    <v-container>
+      <v-card class="pa-4">
+        <!-- Display Job Order Number -->
+        <v-card-subtitle v-if="jobOrderId">Job Order #: {{ jobOrderId }}</v-card-subtitle>
+        <v-card-title>Upload Images for Job Order</v-card-title>
+        <!-- Image upload section -->
+        <v-file-input
+          v-model="files"
+          label="Upload Images"
+          accept="image/*"
+          multiple
+          outlined
+          required
+        ></v-file-input>
 
-      <!-- Display uploaded images -->
-      <v-row>
-        <v-col v-for="(image, index) in images" :key="index" cols="4" class="pa-2">
-          <v-img :src="image.url" alt="Uploaded Image" aspect-ratio="1" contain />
-        </v-col>
-      </v-row>
+        <!-- Display uploaded images -->
+        <v-row>
+          <v-col v-for="(image, index) in images" :key="index" cols="4" class="pa-2">
+            <v-img
+  :src="image.url"
+  alt="Uploaded Image"
+  max-height="300"
+  class="rounded-lg"
+  :lazy-src="image.url"
+  cover
+/>          </v-col>
+        </v-row>
 
-      <v-btn
-        class="mt-4"
-        color="primary"
-        @click="uploadImages"
-      >
-        Submit
-      </v-btn>
-    </v-card>
-  </v-container>
-</template>
+        <v-btn
+          class="mt-4"
+          color="primary"
+          @click="uploadImages"
+        >
+          Submit
+        </v-btn>
+
+        <!-- Display uploaded images below the button -->
+        <v-divider class="my-4"></v-divider>
+        <v-card-title>Uploaded Images</v-card-title>
+        <v-row>
+          <v-col v-for="(image, index) in images" :key="index" cols="4" class="pa-2">
+            <v-img :src="image.url" alt="Uploaded Image" aspect-ratio="1" contain />
+          </v-col>
+        </v-row>
+      </v-card>
+    </v-container>
+  </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
 import axios from "axios";
 import { useRoute } from "vue-router";
+import imageCompression from "browser-image-compression"; // Import the library
 
 // Configure Axios to include cookies in requests
 axios.defaults.withCredentials = true;
@@ -43,20 +60,30 @@ axios.defaults.withCredentials = true;
 const files = ref([]);
 const images = ref([]);
 const route = useRoute();
+const jobOrderId = route.query.id; // Get the job order ID from the URL query parameters
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
+// Allowed file types
 const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/gif"];
 
 // Fetch the images for the job order on page load
 const fetchImages = async () => {
-  const jobOrderId = route.query.id; // Get the job order ID from the URL query parameters
+  const jobOrderId = route.query.id;
   try {
     const response = await axios.get(`http://localhost:8000/api/job-orders/${jobOrderId}/images`);
-    images.value = response.data; // Assuming the API returns the image URLs
+    console.log("Fetched images:", response.data);
+
+    const baseUrl = "http://localhost:8000/storage/";
+    images.value = response.data.map((image) => {
+      const imagePath = image.path || image.url || "";
+      return {
+        ...image,
+        url: imagePath.startsWith("http") ? imagePath : baseUrl + imagePath,
+      };
+    });
   } catch (error) {
     if (error.response?.status === 404) {
       console.warn("No images found for this job order.");
-      images.value = []; // Clear the images array if no images are found
+      images.value = [];
     } else {
       console.error("Error fetching images:", error);
       alert("An error occurred while fetching images. Please try again later.");
@@ -71,20 +98,31 @@ const uploadImages = async () => {
     return;
   }
 
-  // Client-side validation for file size and type
+  // Client-side validation for file type only
   for (const file of files.value) {
     if (!ALLOWED_FILE_TYPES.includes(file.type)) {
       alert(`Invalid file type: ${file.name}. Only JPEG, PNG, and GIF are allowed.`);
       return;
     }
-    if (file.size > MAX_FILE_SIZE) {
-      alert(`File too large: ${file.name}. Maximum size is 2 MB.`);
-      return;
-    }
   }
 
   const formData = new FormData();
-  files.value.forEach((file) => formData.append("images[]", file)); // Ensure the key matches Laravel's expected input
+
+  // Compress and append images to FormData
+  for (const file of files.value) {
+    try {
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 1, // Maximum size in MB
+        maxWidthOrHeight: 1024, // Maximum width or height in pixels
+        useWebWorker: true, // Use a web worker for better performance
+      });
+      formData.append("images[]", compressedFile); // Append compressed file
+    } catch (error) {
+      console.error(`Error compressing file ${file.name}:`, error);
+      alert(`An error occurred while compressing ${file.name}.`);
+      return;
+    }
+  }
 
   // Debugging: Log FormData content
   for (let pair of formData.entries()) {
@@ -120,3 +158,4 @@ onMounted(() => {
   fetchImages();
 });
 </script>
+

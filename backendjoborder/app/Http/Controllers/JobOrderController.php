@@ -6,6 +6,8 @@ use App\Models\JobOrder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
+use App\Models\JobOrderImage;
+
 
 class JobOrderController extends Controller
 {
@@ -162,42 +164,48 @@ class JobOrderController extends Controller
     }
 
     public function uploadImages(Request $request, $id)
-    {
-        $request->validate([
-            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+{
+    $request->validate([
+        'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+    ]);
 
-        $uploadedImages = [];
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $image) {
-                $path = $image->store('job-order-images', 'public');
-                $uploadedImages[] = Storage::url($path); // Return full URL for each image
-            }
+    $jobOrder = JobOrder::findOrFail($id);
+
+    $uploadedImages = [];
+
+    if ($request->hasFile('images')) {
+        foreach ($request->file('images') as $image) {
+            $path = $image->store('job-order-images', 'public');
+
+            // Save to the database
+            $jobOrder->images()->create([
+                'path' => $path
+            ]);
+
+            $uploadedImages[] = Storage::url($path);
         }
-
-        return response()->json(['message' => 'Images uploaded successfully', 'images' => $uploadedImages]);
     }
 
-    public function getImages($id)
-    {
-        $jobOrder = JobOrder::find($id);
+    return response()->json([
+        'message' => 'Images uploaded successfully',
+        'images' => $uploadedImages
+    ]);
+}
 
-        if (!$jobOrder) {
-            return response()->json(['message' => 'Job order not found'], 404);
-        }
 
-        // Assuming images are stored in a related table or as a JSON column
-        $images = $jobOrder->images; // Adjust this based on your database structure
+public function getImages($id)
+{
+    $jobOrder = JobOrder::with('images')->find($id);
 
-        if (!$images || count($images) === 0) {
-            return response()->json([], 200); // Return an empty array if no images are found
-        }
-
-        // Format the image URLs (assuming they are stored as paths)
-        $imageUrls = array_map(function ($imagePath) {
-            return Storage::url($imagePath); // Return full URL for each image
-        }, $images);
-
-        return response()->json($imageUrls, 200);
+    if (!$jobOrder) {
+        return response()->json(['message' => 'Job order not found'], 404);
     }
+
+    $imageUrls = $jobOrder->images->map(function ($image) {
+        return Storage::url($image->path);
+    });
+
+    return response()->json($imageUrls, 200);
+}
+
 }
