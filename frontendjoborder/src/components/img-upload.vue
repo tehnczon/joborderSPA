@@ -24,8 +24,6 @@
         required
       ></v-file-input>
 
-
-
       <!-- Submit Button -->
       <v-btn
         class="mt-4"
@@ -40,6 +38,18 @@
       <!-- Divider and Uploaded Images -->
       <v-divider class="my-4"></v-divider>
       <v-card-title>Uploaded Images</v-card-title>
+
+      <!-- Modal for Zoomed Image -->
+      <v-dialog v-model="isZoomed" max-width="720px">
+        <v-card>
+          <v-img :src="zoomedImage" alt="Zoomed Image" aspect-ratio="1" contain />
+          <v-card-actions>
+            <v-spacer></v-spacer>
+            <v-btn color="red darken-2" text @click="isZoomed = false">Close</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
       <v-row>
         <v-col
           v-for="(image, index) in images"
@@ -52,6 +62,8 @@
             alt="Uploaded Image"
             aspect-ratio="1"
             contain
+            @click="zoomImage(image.url)"
+            class="cursor-pointer"
           />
         </v-col>
       </v-row>
@@ -70,6 +82,8 @@ axios.defaults.withCredentials = true;
 const files = ref([]);
 const images = ref([]);
 const isUploading = ref(false);
+const isZoomed = ref(false);
+const zoomedImage = ref("");
 const route = useRoute();
 const jobOrderId = route.query.id;
 const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/gif"];
@@ -80,9 +94,8 @@ const fetchImages = async () => {
     const response = await axios.get(`http://localhost:8000/api/job-orders/${jobOrderId}/images`);
 
     images.value = response.data.map((path) => ({
-  url: `http://localhost:8000${path}`.replace(/([^:]\/)\/+/g, "$1")
-}));
-
+      url: `http://localhost:8000${path}`.replace(/([^:]\/)\/+/g, "$1")
+    }));
 
   } catch (error) {
     if (error.response?.status === 404) {
@@ -93,8 +106,6 @@ const fetchImages = async () => {
       alert("An error occurred while fetching images.");
     }
   }
-
-
 };
 
 // Upload images
@@ -138,6 +149,12 @@ const uploadImages = async () => {
   } finally {
     isUploading.value = false;
   }
+};
+
+// Function to handle image click
+const zoomImage = (imageUrl) => {
+  zoomedImage.value = imageUrl;
+  isZoomed.value = true;
 };
 
 // Fetch on mount
