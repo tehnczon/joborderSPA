@@ -1,161 +1,145 @@
-  <template>
-    <v-container>
-      <v-card class="pa-4">
-        <!-- Display Job Order Number -->
-        <v-card-subtitle v-if="jobOrderId">Job Order #: {{ jobOrderId }}</v-card-subtitle>
-        <v-card-title>Upload Images for Job Order</v-card-title>
-        <!-- Image upload section -->
-        <v-file-input
-          v-model="files"
-          label="Upload Images"
-          accept="image/*"
-          multiple
-          outlined
-          required
-        ></v-file-input>
+<template>
+  <v-container>
+    <!-- Loading Spinner Overlay -->
+    <v-overlay :model-value="isUploading" class="d-flex justify-center align-center" persistent>
+      <v-progress-circular
+        indeterminate
+        size="64"
+        color="red darken-2"
+      />
+    </v-overlay>
 
-        <!-- Display uploaded images -->
-        <v-row>
-          <v-col v-for="(image, index) in images" :key="index" cols="4" class="pa-2">
-            <v-img
-  :src="image.url"
-  alt="Uploaded Image"
-  max-height="300"
-  class="rounded-lg"
-  :lazy-src="image.url"
-  cover
-/>          </v-col>
-        </v-row>
+    <v-card class="pa-4">
+      <!-- Display Job Order Number -->
+      <v-card-subtitle v-if="jobOrderId">Job Order #: {{ jobOrderId }}</v-card-subtitle>
+      <v-card-title>Upload Images for Job Order</v-card-title>
 
-        <v-btn
-          class="mt-4"
-          color="primary"
-          @click="uploadImages"
+      <!-- Image upload section -->
+      <v-file-input
+        v-model="files"
+        label="Upload Images"
+        accept="image/*"
+        multiple
+        outlined
+        required
+      ></v-file-input>
+
+
+
+      <!-- Submit Button -->
+      <v-btn
+        class="mt-4"
+        color="red darken-2"
+        :loading="isUploading"
+        :disabled="isUploading"
+        @click="uploadImages"
+      >
+        <span v-if="!isUploading">Submit</span>
+      </v-btn>
+
+      <!-- Divider and Uploaded Images -->
+      <v-divider class="my-4"></v-divider>
+      <v-card-title>Uploaded Images</v-card-title>
+      <v-row>
+        <v-col
+          v-for="(image, index) in images"
+          :key="index"
+          cols="4"
+          class="pa-2"
         >
-          Submit
-        </v-btn>
-
-        <!-- Display uploaded images below the button -->
-        <v-divider class="my-4"></v-divider>
-        <v-card-title>Uploaded Images</v-card-title>
-        <v-row>
-          <v-col v-for="(image, index) in images" :key="index" cols="4" class="pa-2">
-            <v-img :src="image.url" alt="Uploaded Image" aspect-ratio="1" contain />
-          </v-col>
-        </v-row>
-      </v-card>
-    </v-container>
-  </template>
+          <v-img
+            :src="image.url"
+            alt="Uploaded Image"
+            aspect-ratio="1"
+            contain
+          />
+        </v-col>
+      </v-row>
+    </v-card>
+  </v-container>
+</template>
 
 <script setup>
 import { ref, onMounted } from "vue";
-import axios from "axios";
 import { useRoute } from "vue-router";
-import imageCompression from "browser-image-compression"; // Import the library
+import axios from "axios";
+import imageCompression from "browser-image-compression";
 
-// Configure Axios to include cookies in requests
 axios.defaults.withCredentials = true;
 
-// State for uploaded files and images
 const files = ref([]);
 const images = ref([]);
+const isUploading = ref(false);
 const route = useRoute();
-const jobOrderId = route.query.id; // Get the job order ID from the URL query parameters
-
-// Allowed file types
+const jobOrderId = route.query.id;
 const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/gif"];
 
-// Fetch the images for the job order on page load
+// Fetch uploaded images
 const fetchImages = async () => {
-  const jobOrderId = route.query.id;
   try {
     const response = await axios.get(`http://localhost:8000/api/job-orders/${jobOrderId}/images`);
-    console.log("Fetched images:", response.data);
 
-    const baseUrl = "http://localhost:8000/storage/";
-    images.value = response.data.map((image) => {
-      const imagePath = image.path || image.url || "";
-      return {
-        ...image,
-        url: imagePath.startsWith("http") ? imagePath : baseUrl + imagePath,
-      };
-    });
+    images.value = response.data.map((path) => ({
+  url: `http://localhost:8000${path}`.replace(/([^:]\/)\/+/g, "$1")
+}));
+
+
   } catch (error) {
     if (error.response?.status === 404) {
       console.warn("No images found for this job order.");
       images.value = [];
     } else {
       console.error("Error fetching images:", error);
-      alert("An error occurred while fetching images. Please try again later.");
+      alert("An error occurred while fetching images.");
     }
   }
+
+
 };
 
-// Upload the images to the server
+// Upload images
 const uploadImages = async () => {
   if (files.value.length === 0) {
-    alert("Please select at least one image to upload.");
+    alert("Please select at least one image.");
     return;
   }
 
-  // Client-side validation for file type only
-  for (const file of files.value) {
-    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-      alert(`Invalid file type: ${file.name}. Only JPEG, PNG, and GIF are allowed.`);
-      return;
-    }
-  }
-
-  const formData = new FormData();
-
-  // Compress and append images to FormData
-  for (const file of files.value) {
-    try {
-      const compressedFile = await imageCompression(file, {
-        maxSizeMB: 1, // Maximum size in MB
-        maxWidthOrHeight: 1024, // Maximum width or height in pixels
-        useWebWorker: true, // Use a web worker for better performance
-      });
-      formData.append("images[]", compressedFile); // Append compressed file
-    } catch (error) {
-      console.error(`Error compressing file ${file.name}:`, error);
-      alert(`An error occurred while compressing ${file.name}.`);
-      return;
-    }
-  }
-
-  // Debugging: Log FormData content
-  for (let pair of formData.entries()) {
-    console.log(`${pair[0]}:`, pair[1]);
-  }
+  isUploading.value = true;
 
   try {
-    const jobOrderId = route.query.id;
-    const response = await axios.post(
+    const formData = new FormData();
+
+    for (const file of files.value) {
+      if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+        alert(`Invalid file type: ${file.name}`);
+        isUploading.value = false;
+        return;
+      }
+
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 1024,
+        useWebWorker: true,
+      });
+
+      formData.append("images[]", compressedFile);
+    }
+
+    await axios.post(
       `http://localhost:8000/api/job-orders/${jobOrderId}/upload-images`,
       formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
+      { headers: { "Content-Type": "multipart/form-data" } }
     );
-    console.log("Images uploaded successfully:", response.data);
-    fetchImages(); // Refresh the list of images after upload
+
+    await fetchImages();
   } catch (error) {
-    if (error.response?.data?.errors) {
-      console.error("Validation errors:", error.response.data.errors);
-      alert(`Error: ${Object.values(error.response.data.errors).flat().join(", ")}`);
-    } else {
-      console.error("Error uploading images:", error.response?.data || error.message);
-      alert("An unexpected error occurred while uploading images.");
-    }
+    console.error("Upload error:", error);
+    alert("Upload failed. Please try again.");
+  } finally {
+    isUploading.value = false;
   }
 };
 
-// Fetch images on component mount
-onMounted(() => {
-  fetchImages();
-});
+// Fetch on mount
+onMounted(fetchImages);
 </script>
-

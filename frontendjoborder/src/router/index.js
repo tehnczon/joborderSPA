@@ -5,6 +5,7 @@ import UpdateView from "@/views/update-component.vue";
 import LoginView from "@/components/my-login.vue";
 import Print from "@/views/PrintView.vue";
 import ImageView from "@/components/img-upload.vue";
+import DebugEr from "@/components/debug-er.vue"; // Import Debuger component
 import axios from "@/api/axios"; // Import global axios instance
 import { ref } from "vue";
 
@@ -38,6 +39,7 @@ const routes = [
   { path: "/login", component: LoginView },
   { path: "/print", component: Print },
   { path: "/image", component: ImageView, meta: { requiresAuth: true } },
+  { path: "/debug", component: DebugEr, meta: { requiresAuth: true } }, // Debuger route
 ];
 
 const router = createRouter({
