@@ -164,48 +164,69 @@ class JobOrderController extends Controller
     }
 
     public function uploadImages(Request $request, $id)
-{
-    $request->validate([
-        'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
-    ]);
+    {
+        $request->validate([
+            'images.*' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
 
-    $jobOrder = JobOrder::findOrFail($id);
+        $jobOrder = JobOrder::findOrFail($id);
 
-    $uploadedImages = [];
+        $uploadedImages = [];
 
-    if ($request->hasFile('images')) {
-        foreach ($request->file('images') as $image) {
-            $path = $image->store('job-order-images', 'public');
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $image) {
+                $path = $image->store('job-order-images', 'public');
 
-            // Save to the database
-            $jobOrder->images()->create([
-                'path' => $path
-            ]);
+                // Save to the database
+                $jobOrder->images()->create([
+                    'path' => $path
+                ]);
 
-            $uploadedImages[] = Storage::url($path);
+                $uploadedImages[] = Storage::url($path);
+            }
         }
+
+        return response()->json([
+            'message' => 'Images uploaded successfully',
+            'images' => $uploadedImages
+        ]);
     }
 
-    return response()->json([
-        'message' => 'Images uploaded successfully',
-        'images' => $uploadedImages
-    ]);
-}
+    public function getImages($id)
+    {
+        $jobOrder = JobOrder::with('images')->find($id);
 
+        if (!$jobOrder) {
+            return response()->json(['message' => 'Job order not found'], 404);
+        }
 
-public function getImages($id)
-{
-    $jobOrder = JobOrder::with('images')->find($id);
+        $imageUrls = $jobOrder->images->map(function ($image) {
+            return Storage::url($image->path);
+        });
 
-    if (!$jobOrder) {
-        return response()->json(['message' => 'Job order not found'], 404);
+        return response()->json($imageUrls, 200);
     }
 
-    $imageUrls = $jobOrder->images->map(function ($image) {
-        return Storage::url($image->path);
-    });
+    public function deleteImage(Request $request, $id)
+    {
+        $request->validate([
+            'path' => 'required|string',
+        ]);
 
-    return response()->json($imageUrls, 200);
-}
+        $jobOrder = JobOrder::findOrFail($id);
 
+        $image = $jobOrder->images()->where('path', $request->path)->first();
+
+        if (!$image) {
+            return response()->json(['message' => 'Image not found'], 404);
+        }
+
+        // Delete the file from storage
+        Storage::disk('public')->delete($image->path);
+
+        // Delete the record from the database
+        $image->delete();
+
+        return response()->json(['message' => 'Image deleted successfully'], 200);
+    }
 }

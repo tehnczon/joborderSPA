@@ -65,6 +65,14 @@
             @click="zoomImage(image.url)"
             class="cursor-pointer"
           />
+          <v-btn
+            small
+            color="red darken-2"
+            class="mt-2"
+            @click="deleteImage(image.url)"
+          >
+            Delete
+          </v-btn>
         </v-col>
       </v-row>
     </v-card>
@@ -155,6 +163,28 @@ const uploadImages = async () => {
 const zoomImage = (imageUrl) => {
   zoomedImage.value = imageUrl;
   isZoomed.value = true;
+};
+
+// Delete an image
+const deleteImage = async (imageUrl) => {
+  if (!confirm("Are you sure you want to delete this image?")) {
+    return;
+  }
+
+  try {
+    const imagePath = imageUrl.replace("http://localhost:8000/storage/", ""); // Extract relative path
+    console.log("Deleting image with path:", imagePath); // Log the path for debugging
+
+    await axios.delete(`http://localhost:8000/api/job-orders/${jobOrderId}/delete-image`, {
+      data: { path: imagePath }, // Send the correct relative path
+    });
+
+    // Refresh the image list
+    await fetchImages();
+  } catch (error) {
+    console.error("Error deleting image:", error);
+    alert("Failed to delete the image. Please try again.");
+  }
 };
 
 // Fetch on mount
