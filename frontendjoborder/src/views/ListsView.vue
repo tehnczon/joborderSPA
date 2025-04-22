@@ -114,7 +114,7 @@ const headers = [
 const fetchJobOrders = async () => {
   isLoading.value = true;
   try {
-    const response = await axios.get("http://localhost:8000/api/job-orders");
+    const response = await axios.get("https://desktop.tehnczon.online/api/job-orders");
     jobOrders.value = response.data;
   } catch (error) {
     console.error("Error fetching job orders:", error);

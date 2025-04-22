@@ -125,7 +125,7 @@ const submitForm = async () => {
   const requestData = { ...state };
 
   try {
-    const response = await axios.post("http://localhost:8000/api/job-orders", requestData, {
+    const response = await axios.post("https://desktop.tehnczon.online/api/job-orders", requestData, {
       headers: { "Content-Type": "application/json" },
     });
 

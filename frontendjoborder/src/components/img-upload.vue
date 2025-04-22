@@ -99,10 +99,10 @@ const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/gif"];
 // Fetch uploaded images
 const fetchImages = async () => {
   try {
-    const response = await axios.get(`http://localhost:8000/api/job-orders/${jobOrderId}/images`);
+    const response = await axios.get(`https://desktop.tehnczon.online/api/job-orders/${jobOrderId}/images`);
 
     images.value = response.data.map((path) => ({
-      url: `http://localhost:8000${path}`.replace(/([^:]\/)\/+/g, "$1")
+      url: `https://desktop.tehnczon.online${path}`.replace(/([^:]\/)\/+/g, "$1")
     }));
 
   } catch (error) {
@@ -145,7 +145,7 @@ const uploadImages = async () => {
     }
 
     await axios.post(
-      `http://localhost:8000/api/job-orders/${jobOrderId}/upload-images`,
+      `https://desktop.tehnczon.online/api/job-orders/${jobOrderId}/upload-images`,
       formData,
       { headers: { "Content-Type": "multipart/form-data" } }
     );
@@ -172,10 +172,10 @@ const deleteImage = async (imageUrl) => {
   }
 
   try {
-    const imagePath = imageUrl.replace("http://localhost:8000/storage/", ""); // Extract relative path
+    const imagePath = imageUrl.replace("https://desktop.tehnczon.online/storage/", ""); // Extract relative path
     console.log("Deleting image with path:", imagePath); // Log the path for debugging
 
-    await axios.delete(`http://localhost:8000/api/job-orders/${jobOrderId}/delete-image`, {
+    await axios.delete(`https://desktop.tehnczon.online/api/job-orders/${jobOrderId}/delete-image`, {
       data: { path: imagePath }, // Send the correct relative path
     });
 
