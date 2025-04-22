@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backendjoborder
+      dockerfile: Dockerfile
+    container_name: joborder-backend
+    volumes:
+      - ./backendjoborder:/var/www
+    ports:
+      - "8001:8000"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=joborder
+      - DB_USERNAME=root
+      - DB_PASSWORD=root
+
+  frontend:
+    build:
+      context: ./frontendjoborder
+      dockerfile: Dockerfile
+    container_name: joborder-frontend
+    ports:
+      - "5173:80"
+
+  db:
+    image: mysql:8.0
+    container_name: joborder-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: joborder
+    volumes:
+      - db_data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: joborder-phpmyadmin
+    restart: always
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      MYSQL_ROOT_PASSWORD: root
+
+volumes:
+  db_data:

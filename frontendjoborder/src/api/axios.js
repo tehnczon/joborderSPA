@@ -2,6 +2,6 @@ import axios from 'axios';
 
 axios.defaults.withCredentials = true;
 axios.defaults.withXSRFToken = true;
-axios.defaults.baseURL = 'http://localhost:8001';
+axios.defaults.baseURL = 'https://desktop.tehnczon.online';
 
 export default axios;
