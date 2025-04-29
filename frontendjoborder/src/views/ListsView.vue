@@ -98,6 +98,8 @@ const isLoading = ref(false);
 const showDialog = ref(false);
 const selectedJobOrder = ref(null);
 const search = ref("");
+const API_DOMAIN = import.meta.env.VITE_API_DOMAIN;
+
 
 // Table headers
 const headers = [
@@ -114,7 +116,7 @@ const headers = [
 const fetchJobOrders = async () => {
   isLoading.value = true;
   try {
-    const response = await axios.get("https://desktop.tehnczon.online/api/job-orders");
+    const response = await axios.get(`${API_DOMAIN}/api/job-orders`);
     jobOrders.value = response.data;
   } catch (error) {
     console.error("Error fetching job orders:", error);

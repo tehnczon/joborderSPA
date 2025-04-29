@@ -25,7 +25,7 @@ services:
       dockerfile: Dockerfile
     container_name: joborder-frontend
     ports:
-      - "5173:80"
+      - "8085:80"
 
   db:
     image: mysql:8.0

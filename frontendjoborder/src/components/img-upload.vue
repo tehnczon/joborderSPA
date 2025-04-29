@@ -95,14 +95,15 @@ const zoomedImage = ref("");
 const route = useRoute();
 const jobOrderId = route.query.id;
 const ALLOWED_FILE_TYPES = ["image/jpeg", "image/png", "image/gif"];
+const API_DOMAIN = import.meta.env.VITE_API_DOMAIN;
 
 // Fetch uploaded images
 const fetchImages = async () => {
   try {
-    const response = await axios.get(`https://desktop.tehnczon.online/api/job-orders/${jobOrderId}/images`);
+    const response = await axios.get(`${API_DOMAIN}/api/job-orders/${jobOrderId}/images`);
 
     images.value = response.data.map((path) => ({
-      url: `https://desktop.tehnczon.online${path}`.replace(/([^:]\/)\/+/g, "$1")
+      url: `${API_DOMAIN}${path}`.replace(/([^:]\/)\/+/g, "$1")
     }));
 
   } catch (error) {
@@ -145,7 +146,7 @@ const uploadImages = async () => {
     }
 
     await axios.post(
-      `https://desktop.tehnczon.online/api/job-orders/${jobOrderId}/upload-images`,
+      `${API_DOMAIN}/api/job-orders/${jobOrderId}/upload-images`,
       formData,
       { headers: { "Content-Type": "multipart/form-data" } }
     );
@@ -167,25 +168,26 @@ const zoomImage = (imageUrl) => {
 
 // Delete an image
 const deleteImage = async (imageUrl) => {
-  if (!confirm("Are you sure you want to delete this image?")) {
-    return;
-  }
+  if (!confirm("Are you sure you want to delete this image?")) return;
 
   try {
-    const imagePath = imageUrl.replace("https://desktop.tehnczon.online/storage/", ""); // Extract relative path
-    console.log("Deleting image with path:", imagePath); // Log the path for debugging
+    // Remove the API domain and extract the relative path after `/storage/`
+    const imagePath = imageUrl.split("/storage/")[1];
+    if (!imagePath) {
+      throw new Error("Invalid image URL format.");
+    }
 
-    await axios.delete(`https://desktop.tehnczon.online/api/job-orders/${jobOrderId}/delete-image`, {
-      data: { path: imagePath }, // Send the correct relative path
+    await axios.delete(`${API_DOMAIN}/api/job-orders/${jobOrderId}/delete-image`, {
+      data: { path: imagePath },
     });
 
-    // Refresh the image list
     await fetchImages();
   } catch (error) {
     console.error("Error deleting image:", error);
     alert("Failed to delete the image. Please try again.");
   }
 };
+
 
 // Fetch on mount
 onMounted(fetchImages);

@@ -46,13 +46,15 @@ import axios from "axios";
 const route = useRoute();
 const router = useRouter();
 const jobOrder = ref(null);
+const API_DOMAIN = import.meta.env.VITE_API_DOMAIN;
+
 
 const fetchJobOrder = async () => {
   const jobOrderId = route.query.id;
   if (!jobOrderId) return;
 
   try {
-    const response = await axios.get(`https://desktop.tehnczon.online/api/job-orders/${jobOrderId}`);
+    const response = await axios.get(`${API_DOMAIN}/api/job-orders/${jobOrderId}`);
     jobOrder.value = response.data;
   } catch (error) {
     console.error("Error fetching job order:", error);
@@ -74,7 +76,7 @@ const updateJobOrder = async () => {
   const pulloutDate = isPullout ? new Date().toISOString().split("T")[0] : null;
 
   try {
-    await axios.put(`https://desktop.tehnczon.online/api/job-orders/${route.query.id}`, {
+    await axios.put(`${API_DOMAIN}/api/job-orders/${route.query.id}`, {
       status: jobOrder.value.status,
       pullout_date: pulloutDate,
       pulled_out_by: jobOrder.value.pulled_out_by ?? null,

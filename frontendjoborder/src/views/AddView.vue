@@ -81,6 +81,7 @@ import { reactive } from "vue";
 import { useVuelidate } from "@vuelidate/core";
 import { required, numeric, helpers } from "@vuelidate/validators";
 import axios from "axios";
+const API_DOMAIN = import.meta.env.VITE_API_DOMAIN;
 
 const state = reactive({
   customer_type: "customer",
@@ -125,7 +126,7 @@ const submitForm = async () => {
   const requestData = { ...state };
 
   try {
-    const response = await axios.post("https://desktop.tehnczon.online/api/job-orders", requestData, {
+    const response = await axios.post(`${API_DOMAIN}/api/job-orders`, requestData, {
       headers: { "Content-Type": "application/json" },
     });
 
