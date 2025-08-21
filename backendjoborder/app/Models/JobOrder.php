@@ -17,10 +17,10 @@ class JobOrder extends Model
         'job_order_number',
         'customer_type',
         'customer_name',
-        'contact_number', // Added contact_number
+        'contact_number',
         'customer_address',
         'problem',
-        'date_created', // Automatically managed by Laravel
+        'date_created',
         'laptop_model',
         'status',
         'pullout_date',
@@ -32,6 +32,11 @@ class JobOrder extends Model
         'has_wifi_card',
         'others',
         'without',
+        // New pricing fields - will be ignored if columns don't exist
+        'repair_price',
+        'parts_cost',
+        'labor_cost',
+        'repair_notes',
     ];
 
     protected $casts = [
@@ -42,34 +47,77 @@ class JobOrder extends Model
         'ssd' => 'array',
     ];
 
-    // Automatically generate a job order number before saving
+    // Relationships
+    public function images()
+    {
+        return $this->hasMany(JobOrderImage::class);
+    }
+
+    // Only add repair history relationship if the model exists
+    public function repairHistories()
+    {
+        if (class_exists('App\Models\RepairHistory')) {
+            return $this->hasMany(\App\Models\RepairHistory::class)->orderBy('performed_at', 'desc');
+        }
+        return null;
+    }
+
+    // Boot method for auto-generation
     protected static function boot()
     {
         parent::boot();
 
         static::creating(function ($jobOrder) {
-            $prefix = $jobOrder->customer_type === 'technician-customer' ? 'T-' : '';
-            $latestJobOrder = self::where('customer_type', $jobOrder->customer_type)
-                ->orderBy('id', 'desc')
-                ->first();
+            // Only generate if not already set
+            if (empty($jobOrder->job_order_number)) {
+                $prefix = $jobOrder->customer_type === 'technician-customer' ? 'T' : '';
+                $latestJobOrder = self::where('customer_type', $jobOrder->customer_type)
+                    ->orderBy('id', 'desc')
+                    ->first();
 
-            $nextNumber = $latestJobOrder ? (intval(substr($latestJobOrder->job_order_number, 2)) + 1) : 1;
-            $jobOrder->job_order_number = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+                if ($latestJobOrder) {
+                    if ($prefix) {
+                        $lastNumber = intval(substr($latestJobOrder->job_order_number, 1));
+                    } else {
+                        $lastNumber = intval($latestJobOrder->job_order_number);
+                    }
+                    $nextNumber = $lastNumber + 1;
+                } else {
+                    $nextNumber = 1;
+                }
+
+                $jobOrder->job_order_number = $prefix . str_pad($nextNumber, 5, '0', STR_PAD_LEFT);
+            }
         });
     }
 
+    // Format for display
     public function toArray()
-{
-    return array_merge(parent::toArray(), [
-        'created_at' => Carbon::parse($this->created_at)->format('Y-m-d H:i:s'),
-        'updated_at' => Carbon::parse($this->updated_at)->format('Y-m-d H:i:s'),
-        'pullout_date' => $this->pullout_date ? Carbon::parse($this->pullout_date)->format('Y-m-d') : null,
-    ]);
-}
-
-public function images()
-{
-    return $this->hasMany(JobOrderImage::class);
-}
-
+    {
+        $array = parent::toArray();
+        
+        // Format dates safely
+        if (isset($array['created_at'])) {
+            $array['created_at'] = Carbon::parse($this->created_at)->format('Y-m-d H:i:s');
+        }
+        if (isset($array['updated_at'])) {
+            $array['updated_at'] = Carbon::parse($this->updated_at)->format('Y-m-d H:i:s');
+        }
+        if (isset($array['pullout_date']) && $this->pullout_date) {
+            $array['pullout_date'] = Carbon::parse($this->pullout_date)->format('Y-m-d');
+        }
+        
+        // Add default values for pricing if columns don't exist
+        if (!isset($array['repair_price'])) {
+            $array['repair_price'] = 0;
+        }
+        if (!isset($array['parts_cost'])) {
+            $array['parts_cost'] = 0;
+        }
+        if (!isset($array['labor_cost'])) {
+            $array['labor_cost'] = 0;
+        }
+        
+        return $array;
+    }
 }

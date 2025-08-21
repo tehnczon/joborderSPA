@@ -7,6 +7,10 @@ import Print from "@/views/PrintView.vue";
 import ImageView from "@/components/img-upload.vue";
 import axios from "@/api/axios"; // Import global axios instance
 import { ref } from "vue";
+import DashboardView from "@/views/DashboardView.vue";
+import RepairHistory from "@/components/RepairHistory.vue";
+
+
 
 const isAuthenticated = ref(false); // 🔹 Reactive authentication state
 
@@ -19,6 +23,8 @@ const checkAuth = async () => {
     isAuthenticated.value = false;
   }
 };
+
+
 
 // ✅ Function to log out the user
 const logout = async () => {
@@ -38,6 +44,14 @@ const routes = [
   { path: "/login", component: LoginView },
   { path: "/print", component: Print },
   { path: "/image", component: ImageView, meta: { requiresAuth: true } },
+  // Add to routes array:
+  { path: "/dashboard", component: DashboardView, meta: { requiresAuth: true } },
+  { path: "/reports", component: DashboardView, meta: { requiresAuth: true } }, // Temporary, create ReportsView later
+  // {
+  //   path: "/repair-history",
+  //   component: RepairHistory,
+  //   meta: { requiresAuth: true },
+  // }
 ];
 
 const router = createRouter({
